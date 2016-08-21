@@ -1,4 +1,3 @@
-
 Namespace ted2
 
 Class FileActions
@@ -213,10 +212,9 @@ Class FileActions
 
 			Local path:=MainWindow.RequestFile( "Save As","",True )
 			If Not path Return
-			
+			If path.ToLower().Contains(".monkey2")=False path=path+".monkey2"
 			Rename( doc,path,True,True )
-		Else
-		
+		Else		
 			doc.Save()
 		Endif
 	End
@@ -228,7 +226,7 @@ Class FileActions
 	
 		Local path:=MainWindow.RequestFile( "Save As","",True )
 		If Not path Return 
-		
+		If path.ToLower().Contains(".monkey2")=False path=path+".monkey2"
 		Rename( doc,path,True,True )
 	End
 	
@@ -240,7 +238,7 @@ Class FileActions
 	
 				Local path:=MainWindow.RequestFile( "Save As","",True )
 				If Not path Return
-				
+				If path.ToLower().Contains(".monkey2")=False path=path+".monkey2"
 				Rename( doc,path,True,False )
 			Else
 			
