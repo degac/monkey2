@@ -5,6 +5,7 @@ Namespace mojox
 #end
 Class FileBrowser Extends TreeView
 
+
 	#rem monkeydoc Invoked when a file is clicked.
 	#end
 	Field FileClicked:Void( path:String )
@@ -39,6 +40,23 @@ Class FileBrowser Extends TreeView
 		
 		Update()
 	End
+	#rem monkeydoc Set what Files should be excluded. Values separated by commas.
+	#end
+	Property ExcludedFile:String()
+		Return _excluded_file
+	Setter(_e:String)
+		_excluded_file=_e
+	End
+	#rem monkeydoc Set what Folders should be excluded. Values separated by commas.
+	#end
+	Property ExcludedFolder:String()
+		Return _excluded_folder
+	Setter(_e:String)
+		_excluded_folder=_e
+	End
+	
+	
+	
 	
 	#rem monkeydoc Root path of browser.
 	#end
@@ -142,25 +160,33 @@ Class FileBrowser Extends TreeView
 		
 		Local dirs:=New Stack<String>
 		Local files:=New Stack<String>
-		
+	
 		For Local f:=Eachin dir
-		
-			Local fpath:=path+f
-			
+			Local fpath:=path+"/"+f
 			Select GetFileType( fpath )
 			Case FileType.Directory
-				dirs.Push( f )
+				for Local ef:=Eachin _excluded_folder.Split(",")
+					If fpath.ToLower().Contains(ef.ToLower())=True f=""
+				Next
+				If f<>"" dirs.Push( f )
 			Default
-				files.Push( f )
+				For Local ef:=Eachin _excluded_file.Split(",")	
+					If f.ToLower().Contains(ef.ToLower())=True f=""
+				Next
+			
+				If f<>""	files.Push( f )
 			End
 		Next
+		
+
 		
 		dirs.Sort()
 		files.Sort()
 		
 		Local i:=0,children:=node.Children
+		Local total_size:=dirs.Length+files.Length
 		
-		While i<dir.Length
+		While i<total_size
 		
 			Local f:=""
 			If i<dirs.Length f=dirs[i] Else f=files[i-dirs.Length]
@@ -223,8 +249,13 @@ Class FileBrowser Extends TreeView
 		Return _fileTypeIcons
 	End
 	
+
+	
 	Private
-	
+
+		
 	Global _fileTypeIcons:StringMap<Image>
-	
+	Global _excluded_file:String
+	Global _excluded_folder:String
 End
+
