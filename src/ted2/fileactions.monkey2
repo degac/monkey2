@@ -88,6 +88,33 @@ Class FileActions
 	
 	Field _docs:DocumentManager
 	
+	Method IsTmpPath:Bool( path:String )
+	
+		Return MainWindow.IsTmpPath( path )
+	End
+	
+	'Ok, pretty ugly - changing doc type is tricky.
+	'
+	'Wait until we have a propery DocumentType class before getting too carried away...
+	'
+	Method Rename:Ted2Document( doc:Ted2Document,path:String,reopen:Bool,makeCurrent:Bool )
+		
+		Local tpath:=doc.Path
+
+		doc.Rename( path )
+		If Not doc.Save()
+			doc.Rename( tpath )
+			Return Null
+		Endif
+		
+		If reopen And ExtractExt( tpath ).ToLower()<>ExtractExt( path ).ToLower()
+			doc.Close()
+			Return _docs.OpenDocument( path,makeCurrent )
+		Endif
+		
+		Return doc
+	End
+	
 	Method CanClose:Bool( doc:Ted2Document )
 	
 		If Not doc.Dirty Return True
@@ -97,8 +124,17 @@ Class FileActions
 		Local buttons:=New String[]( "Save","Discard Changes","Cancel" )
 			
 		Select TextDialog.Run( "Close All","File '"+doc.Path+"' has been modified.",buttons )
-		Case 0 
-			If Not doc.Save() Return False
+		Case 0
+			If MainWindow.IsTmpPath( doc.Path )
+			
+				Local path:=MainWindow.RequestFile( "Save As","",True )
+				If Not path Return False
+				
+				If Not Rename( doc,path,False,False ) Return False
+			Else
+ 
+				If Not doc.Save() Return False
+			Endif
 		Case 2 
 			Return False
 		End
@@ -129,7 +165,7 @@ Class FileActions
 	
 		Local path:=MainWindow.AllocTmpPath( ".monkey2" )
 		If Not path
-			Alert( "Can't create temporary file" )
+			Alert( "Can't allocate temporary file" )
 			Return
 		Endif
 
@@ -140,14 +176,7 @@ Class FileActions
 		
 	Method OnOpen()
 	
-		Local future:=New Future<String>
-		
-		App.Idle+=Lambda()
-			Local path:=RequestFile( "Open file...","",False )
-			future.Set( path )
-		End
-		
-		Local path:=future.Get()
+		Local path:=MainWindow.RequestFile( "Open file...","",False )
 		If Not path Return
 		
 		path=RealPath( path )
@@ -182,43 +211,25 @@ Class FileActions
 		
 		If MainWindow.IsTmpPath( doc.Path )
 
-			Local path:=RequestFile( "Save As","",True )
+			Local path:=MainWindow.RequestFile( "Save As","",True )
 			If Not path Return
-				'check for .monkey2 extension
-					If CheckValidExtension(path)=False	path=path+".monkey2"
-
-			doc.Rename( path )
-		Endif
+			If CheckValidExtension(path)=False	path=path+".monkey2"
+			Rename( doc,path,True,True )
+		Else
 		
-		doc.Save()
+			doc.Save()
+		Endif
 	End
 	
 	Method OnSaveAs()
-
+	
 		Local doc:=_docs.CurrentDocument
 		If Not doc Return
-			
-		Local path:=RequestFile( "Save As","",True )
-		If Not path Return
-		
-		'check for .monkey2 extension
-					If CheckValidExtension(path)=False	path=path+".monkey2"
-
-		
-		Local index:=0
-		For Local doc2:=Eachin _docs.OpenDocuments
-			If doc=doc2 Exit
-			index+=1
-		Next
-
-		doc.Rename( path )
-		
-		doc.Save()
-		
-		doc.Close()
-		
-		_docs.OpenDocument( path,True )
-		
+	
+		Local path:=MainWindow.RequestFile( "Save As","",True )
+		If Not path Return 
+		If CheckValidExtension(path)=False	path=path+".monkey2"
+		Rename( doc,path,True,True )
 	End
 	
 	Method OnSaveAll()
@@ -227,20 +238,10 @@ Class FileActions
 
 			If MainWindow.IsTmpPath( doc.Path )
 	
-				Local path:=RequestFile( "Save As","",True )
+				Local path:=MainWindow.RequestFile( "Save As","",True )
 				If Not path Return
-					'check for .monkey2 extension		
 				If CheckValidExtension(path)=False	path=path+".monkey2"
-
-		
-				doc.Rename( path )
-				
-				doc.Save()
-				
-				doc.Close()
-				
-				_docs.OpenDocument( path,True )
-				
+				Rename( doc,path,True,False )
 			Else
 			
 				doc.Save()
@@ -252,12 +253,18 @@ Class FileActions
 	
 		For Local doc:=Eachin _docs.OpenDocuments
 		
-			If Not CanClose( doc ) Return
+			If MainWindow.IsTmpPath( doc.Path )
+			
+				If Not doc.Save() Return
+			Else
+				If Not CanClose( doc ) Return
+			Endif
 		Next
 		
 		App.Terminate()
 	End
 End
+
 
 Function CheckValidExtension:Bool(t:String)
 	Local ve:="monkey2,h,hpp,hxx,c,cpp,cxx,m,mm,s,asm,html,js,css,php,md,json,xml,ini,sh,bat,glsl,txt"
@@ -269,8 +276,3 @@ Function CheckValidExtension:Bool(t:String)
 	Return false
 
 End Function
-
-
-		App.Terminate()
-	End
-End
