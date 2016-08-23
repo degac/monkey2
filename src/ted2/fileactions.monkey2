@@ -213,7 +213,7 @@ Class FileActions
 
 			Local path:=MainWindow.RequestFile( "Save As","",True )
 			If Not path Return
-			
+				If CheckValidExtension(path)=False	path=path+".monkey2"
 			Rename( doc,path,True,True )
 		Else
 		
@@ -228,7 +228,7 @@ Class FileActions
 	
 		Local path:=MainWindow.RequestFile( "Save As","",True )
 		If Not path Return 
-		
+			If CheckValidExtension(path)=False	path=path+".monkey2"
 		Rename( doc,path,True,True )
 	End
 	
@@ -240,7 +240,7 @@ Class FileActions
 	
 				Local path:=MainWindow.RequestFile( "Save As","",True )
 				If Not path Return
-				
+					If CheckValidExtension(path)=False	path=path+".monkey2"
 				Rename( doc,path,True,False )
 			Else
 			
@@ -264,3 +264,15 @@ Class FileActions
 		App.Terminate()
 	End
 End
+
+Function CheckValidExtension:Bool(t:String)
+	Local ve:="monkey2,h,hpp,hxx,c,cpp,cxx,m,mm,s,asm,html,js,css,php,md,json,xml,ini,sh,bat,glsl,txt"
+	Local fe:=ExtractExt(t)
+	if fe="" Return false
+	For Local e:=Eachin ve.Split(",")
+		If fe.ToLower()="."+e Return True
+	Next
+	Return false
+
+End Function
+
